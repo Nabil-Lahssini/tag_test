@@ -1,26 +1,25 @@
-name: Create Release
+name: Release Workflow
 
-on: push
+on:
+    push:
+        branches:
+            - main
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
+    release:
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout branch
-        uses: actions/checkout@v2
+        steps:
+            - name: Checkout code
+                uses: actions/checkout@v2
 
-      - name: Generate release tag
-        id: generate_release_tag
-        uses: alexvingg/next-release-tag@v1.0.3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          tag_prefix: ''
+            - name: Set up Git
+                run: |
+                    git config --global user.name "Your Name"
+                    git config --global user.email "your-email@example.com"
 
-      - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.generate_release_tag.outputs.release_tag }}
-          release_name: Release ${{ steps.generate_release_tag.outputs.release_tag }}
+            - name: Create and push tag
+                id: create_tag
+                run: |
+                    git tag -a v${{ github.run_number }} -m "Release version v${{ github.run_number }}"
+                    git push origin v${{ github.run_number }}
