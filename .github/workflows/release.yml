@@ -1,43 +1,26 @@
-name: Incremental Tag Creation
+name: Create Release
 
-on:
-  push:
-    branches:
-      - main
-      - acceptance
+on: push
 
 jobs:
-  create-tag:
+  deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout branch
         uses: actions/checkout@v2
-      
-      - name: Set up Git
-        run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions"
 
-      - name: Get latest tag
-        id: get_tag
-        run: echo ::set-output name=latest_tag::$(git describe --abbrev=0)
+      - name: Generate release tag
+        id: generate_release_tag
+        uses: alexvingg/next-release-tag@v1.0.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag_prefix: ''
 
-      - name: Determine tag suffix
-        id: determine_suffix
-        run: |
-          if [ ${{ github.ref }} = "refs/heads/acceptance" ]; then
-            echo "-beta"
-          else
-            echo ""
-          fi
-        shell: bash
-
-      - name: Increment tag
-        id: increment_tag
-        run: echo ::set-output name=new_tag::$(node -e "const [major, minor, patch] = process.env['INPUT_LATESTTAG'].split('.').map(Number); console.log(\`${major}.${minor}.${patch + 1}${{ steps.determine_suffix.outputs.suffix }}\`)")
-
-      - name: Create new tag
-        run: git tag ${{ steps.increment_tag.outputs.new_tag }}
-
-      - name: Push new tag
-        run: git push origin ${{ steps.increment_tag.outputs.new_tag }}
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.generate_release_tag.outputs.release_tag }}
+          release_name: Release ${{ steps.generate_release_tag.outputs.release_tag }}
